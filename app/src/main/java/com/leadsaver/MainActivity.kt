@@ -18,6 +18,7 @@ import android.widget.TextView
 class MainActivity : Activity() {
 
     private lateinit var status: TextView
+    private lateinit var diag: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,7 +45,24 @@ class MainActivity : Activity() {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         })
         root.addView(button("3. Quitar límite de batería") { askBattery() })
-        setContentView(root)
+
+        root.addView(TextView(this).apply {
+            text = "\nDiagnóstico (últimas notificaciones de WhatsApp):"
+            textSize = 15f
+        })
+        root.addView(button("Copiar diagnóstico") {
+            val txt = getSharedPreferences("leads", Context.MODE_PRIVATE).getString("debug", "") ?: ""
+            (getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                .setPrimaryClip(android.content.ClipData.newPlainText("diagnostico", txt))
+            android.widget.Toast.makeText(this, "Copiado", android.widget.Toast.LENGTH_SHORT).show()
+        })
+        diag = TextView(this).apply {
+            textSize = 12f
+            setTextIsSelectable(true)
+            setPadding(0, pad / 2, 0, 0)
+        }
+        root.addView(diag)
+        setContentView(android.widget.ScrollView(this).apply { addView(root) })
     }
 
     override fun onResume() {
@@ -71,6 +89,8 @@ class MainActivity : Activity() {
             appendLine("Leads agendados: ${prefs.getInt("counter", 0)}")
             prefs.getString("last", null)?.let { appendLine("Último: $it") }
         }
+        diag.text = prefs.getString("debug", null)?.takeIf { it.isNotBlank() }
+            ?: "Todavía no llegó ninguna notificación de WhatsApp a la app."
     }
 
     private fun listenerEnabled(): Boolean {

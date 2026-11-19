@@ -17,10 +17,10 @@ object LeadSaver {
 
     /** Agenda el número como "LEAD N" si todavía no existe en contactos. */
     @Synchronized
-    fun saveIfUnknown(ctx: Context, digits: String): Boolean {
-        if (!hasPerms(ctx)) return false
+    fun saveIfUnknown(ctx: Context, digits: String): String {
+        if (!hasPerms(ctx)) return "SIN PERMISO de contactos"
         val number = "+$digits"
-        if (existsInContacts(ctx, number)) return false
+        if (existsInContacts(ctx, number)) return "ya estaba agendado ($number)"
 
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val n = prefs.getInt("counter", 0) + 1
@@ -31,7 +31,18 @@ object LeadSaver {
             .putString("last", "$name  ·  $number")
             .apply()
         Log.i("LeadSaver", "Agendado $name $number")
-        return true
+        return "AGENDADO $name $number"
+    }
+
+    /** Guarda las últimas entradas de diagnóstico para verlas en la app. */
+    @Synchronized
+    fun debug(ctx: Context, entry: String) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val old = prefs.getString("debug", "") ?: ""
+        val time = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
+        val all = ("[$time] $entry\n\n$old").take(6000)
+        prefs.edit().putString("debug", all).apply()
+        Log.i("LeadSaver", entry)
     }
 
     fun hasPerms(ctx: Context) =
